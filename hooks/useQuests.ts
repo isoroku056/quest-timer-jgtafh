@@ -5,6 +5,7 @@ import { Quest, CharacterStats } from '@/types/quest';
 
 const QUESTS_STORAGE_KEY = '@quests';
 const STATS_STORAGE_KEY = '@character_stats';
+const LIFETIME_STORAGE_KEY = '@lifetime_seconds';
 
 const initialStats: CharacterStats = {
   level: 1,
@@ -18,6 +19,7 @@ const initialStats: CharacterStats = {
 export const useQuests = () => {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [stats, setStats] = useState<CharacterStats>(initialStats);
+  const [totalLifetimeSeconds, setTotalLifetimeSeconds] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,12 +30,16 @@ export const useQuests = () => {
     try {
       const questsData = await AsyncStorage.getItem(QUESTS_STORAGE_KEY);
       const statsData = await AsyncStorage.getItem(STATS_STORAGE_KEY);
+      const lifetimeData = await AsyncStorage.getItem(LIFETIME_STORAGE_KEY);
 
       if (questsData) {
         setQuests(JSON.parse(questsData));
       }
       if (statsData) {
         setStats(JSON.parse(statsData));
+      }
+      if (lifetimeData) {
+        setTotalLifetimeSeconds(JSON.parse(lifetimeData));
       }
     } catch (error) {
       console.log('Error loading data:', error);
@@ -46,6 +52,11 @@ export const useQuests = () => {
     try {
       await AsyncStorage.setItem(QUESTS_STORAGE_KEY, JSON.stringify(newQuests));
       setQuests(newQuests);
+      
+      // Update lifetime total
+      const totalSeconds = newQuests.reduce((sum, quest) => sum + quest.timeSpent, 0);
+      await AsyncStorage.setItem(LIFETIME_STORAGE_KEY, JSON.stringify(totalSeconds));
+      setTotalLifetimeSeconds(totalSeconds);
     } catch (error) {
       console.log('Error saving quests:', error);
     }
@@ -115,6 +126,7 @@ export const useQuests = () => {
     quests,
     stats,
     loading,
+    totalLifetimeSeconds,
     addQuest,
     updateQuest,
     deleteQuest,

@@ -22,7 +22,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { Quest } from '@/types/quest';
 
 export default function HomeScreen() {
-  const { quests, stats, loading, addQuest, updateQuest, deleteQuest, completeQuest } = useQuests();
+  const { quests, stats, loading, addQuest, updateQuest, deleteQuest, completeQuest, totalLifetimeSeconds } = useQuests();
   const { time, isRunning, start, pause, stop } = useTimer();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
@@ -106,6 +106,10 @@ export default function HomeScreen() {
   const activeQuests = quests.filter((q) => !q.completed);
   const completedQuests = quests.filter((q) => q.completed);
 
+  // Calculate 10000 hour progress
+  const tenThousandHoursInSeconds = 10000 * 3600;
+  const lifetimeProgress = (totalLifetimeSeconds / tenThousandHoursInSeconds) * 100;
+
   return (
     <>
       {Platform.OS === 'ios' && (
@@ -126,6 +130,26 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* 10000 Hour Counter */}
+          <View style={styles.lifetimeSection}>
+            <View style={styles.lifetimeHeader}>
+              <IconSymbol name="trophy.fill" size={24} color={colors.accent} />
+              <Text style={styles.lifetimeTitle}>10,000時間への道</Text>
+            </View>
+            <TimerDisplay time={totalLifetimeSeconds} label="累計作業時間" />
+            <View style={styles.progressBarContainer}>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${Math.min(lifetimeProgress, 100)}%` }]} />
+              </View>
+              <Text style={styles.progressText}>
+                {lifetimeProgress.toFixed(2)}% 達成
+              </Text>
+            </View>
+            <Text style={styles.remainingText}>
+              残り {Math.floor((tenThousandHoursInSeconds - totalLifetimeSeconds) / 3600)} 時間
+            </Text>
+          </View>
+
           <View style={styles.timerSection}>
             <TimerDisplay time={totalTimeToday} label="⏱ 合計作業時間" />
             <TimerControls
@@ -150,6 +174,15 @@ export default function HomeScreen() {
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{activeQuests.length}</Text>
               </View>
+              {/* Add button for Android/Web */}
+              {Platform.OS !== 'ios' && (
+                <TouchableOpacity
+                  onPress={() => setModalVisible(true)}
+                  style={styles.addButton}
+                >
+                  <IconSymbol name="plus.circle.fill" color={colors.primary} size={32} />
+                </TouchableOpacity>
+              )}
             </View>
 
             {activeQuests.length === 0 ? (
@@ -157,7 +190,7 @@ export default function HomeScreen() {
                 <IconSymbol name="tray" size={48} color={colors.textSecondary} />
                 <Text style={styles.emptyText}>クエストがありません</Text>
                 <Text style={styles.emptySubtext}>
-                  右上の + ボタンから新しいクエストを追加しましょう
+                  {Platform.OS === 'ios' ? '右上の + ボタンから新しいクエストを追加しましょう' : '上の + ボタンから新しいクエストを追加しましょう'}
                 </Text>
               </View>
             ) : (
@@ -227,6 +260,55 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 20 : 100,
   },
+  lifetimeSection: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
+  lifetimeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    justifyContent: 'center',
+  },
+  lifetimeTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.accent,
+  },
+  progressBarContainer: {
+    marginTop: 16,
+    gap: 8,
+  },
+  progressBar: {
+    height: 12,
+    backgroundColor: colors.highlight,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.accent,
+    borderRadius: 6,
+  },
+  progressText: {
+    fontSize: 14,
+    color: colors.text,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  remainingText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   timerSection: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -259,6 +341,10 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  addButton: {
+    marginLeft: 'auto',
+    padding: 4,
   },
   emptyState: {
     alignItems: 'center',
